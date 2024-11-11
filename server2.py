@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 from flask_cors import CORS
 import speedtest
 import logging
@@ -6,49 +6,35 @@ import threading
 
 app = Flask(__name__)
 CORS(app)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
-# Global dictionary to store the test results
-speedtest_results = {"upload": None, "ping": None, "server": None}
+# Global variable to store upload speed and ping results
+upload_ping_result = {"upload": None, "ping": None}
 
 def measure_upload_ping():
-    """Measures upload speed and ping using the nearest server."""
+    """Measures internet upload speed and ping asynchronously."""
     try:
         test = speedtest.Speedtest()
-        test.get_best_server()  # Automatically selects the best server based on latency
-
-        # Get server details
-        server = test.results.server["host"]
-
-        # Measure upload speed
-        upload_speed = test.upload(threads=1) / 1_000_000  # Convert to Mbps
-        ping = test.results.ping  # Get ping in milliseconds
-
-        # Store the results
-        speedtest_results["upload"] = round(upload_speed, 2)
-        speedtest_results["ping"] = round(ping, 2)
-        speedtest_results["server"] = server
-
-        logging.info(f"Upload speed: {speedtest_results['upload']} Mbps, Ping: {speedtest_results['ping']} ms, Server: {server}")
+        test.get_best_server()
+        upload_speed = test.upload(threads=None) / 1_000_000  # Convert to Mbps
+        ping = test.results.ping  # Ping in milliseconds
+        upload_ping_result["upload"] = round(upload_speed, 2)
+        upload_ping_result["ping"] = round(ping, 2)
+        logging.info(f"Upload speed: {upload_ping_result['upload']} Mbps, Ping: {upload_ping_result['ping']} ms")
     except Exception as e:
-        logging.error(f"Measurement failed: {e}")
-        speedtest_results["upload"] = "Error"
-        speedtest_results["ping"] = "Error"
-        speedtest_results["server"] = "N/A"
+        logging.error(f"Upload/Ping measurement failed: {e}")
+        upload_ping_result.update({"upload": "Error", "ping": "Error"})
 
 @app.route("/", methods=["GET"])
-def upload_ping():
-    user_ip = request.remote_addr
-    logging.info(f"User IP: {user_ip}")
-
-    if speedtest_results["upload"] is None or speedtest_results["ping"] is None:
+def get_upload_ping():
+    if upload_ping_result["upload"] is None:
+        # Start the upload speed and ping test in a background thread
         threading.Thread(target=measure_upload_ping).start()
-        return jsonify({"status": "Speed test in progress, please check back later."})
-    elif speedtest_results["upload"] == "Error":
-        return jsonify({"error": "Measurement failed"}), 500
+        return jsonify({'status': 'Upload and ping speed test started, please check back later.'})
+    elif upload_ping_result["upload"] == "Error":
+        return jsonify({'error': 'Upload speed and ping measurement failed'}), 500
     else:
-        return jsonify({
-            "upload": speedtest_results["upload"],
-            "ping": speedtest_results["ping"],
-            "server": speedtest_results["server"]
-        })
+        # Prepare the result and reset the global variable for the next request
+        response = {'upload': upload_ping_result["upload"], 'ping': upload_ping_result["ping"]}
+        upload_ping_result.update({"upload": None, "ping": None})
+        return jsonify(response)
