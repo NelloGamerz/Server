@@ -22,7 +22,7 @@ def measure_download_speed():
 
 
 
-@app.route('/api/speedtest/download', methods=['GET'])
+@app.route('/', methods=['GET'])
 def download_speed():
     try:
         download_speed_mbps = measure_download_speed()
