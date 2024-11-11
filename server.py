@@ -28,12 +28,3 @@ def download_speed():
     except Exception as e:
         logging.error("Download speed measurement failed:", exc_info=e)
         return jsonify({'error': 'Download speed measurement failed'}), 500
-
-@app.route("/", methods=["GET"])
-def upload_ping():
-    try:
-        upload_speed, ping = measure_upload_ping()
-        return jsonify({"upload": upload_speed, "ping": ping})
-    except Exception as e:
-        logging.error(f"Error in /api/speedtest/upload_ping: {e}")
-        return jsonify({"error": "Failed to measure upload speed and ping"}), 500
