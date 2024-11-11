@@ -65,7 +65,3 @@ def upload_ping():
     except Exception as e:
         app.logger.error(f"Error in /api/speedtest/upload_ping: {e}")
         return jsonify({"error": "Failed to measure upload speed and ping"}), 500
-
-# Run the app using Gunicorn for production (or use `flask run` in development)
-if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=5000)  # Ensure it's bound to all IPs for production use
