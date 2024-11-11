@@ -6,7 +6,7 @@ import threading
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 # Global dictionary to store the upload speed and ping results
 speedtest_results = {"upload": None, "ping": None}
