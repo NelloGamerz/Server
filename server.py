@@ -15,7 +15,7 @@ def measure_download_speed():
     """Measures internet download speed asynchronously."""
     try:
         test = speedtest.Speedtest()
-        test.get_best_server(timeout=5)
+        test.get_best_server()
         download_speed = test.download() / 1_000_000  # Convert to Mbps
         speedtest_results["download"] = round(download_speed, 2)
         logging.info(f"Download speed: {speedtest_results['download']} Mbps")
