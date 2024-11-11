@@ -32,7 +32,7 @@ def measure_upload_ping():
         logging.error(f"Upload/Ping measurement failed: {e}")
         raise
 
-@app.route('/api/speedtest/download', methods=['GET'])
+@app.route('/', methods=['GET'])
 def download_speed():
     try:
         download_speed_mbps = measure_download_speed()
@@ -41,7 +41,7 @@ def download_speed():
         logging.error("Download speed measurement failed:", exc_info=e)
         return jsonify({'error': 'Download speed measurement failed'}), 500
 
-@app.route("/api/speedtest/upload_ping", methods=["GET"])
+@app.route("/", methods=["GET"])
 def upload_ping():
     try:
         upload_speed, ping = measure_upload_ping()
