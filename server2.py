@@ -14,7 +14,7 @@ speedtest_results = {"upload": None, "ping": None}
 def measure_upload_ping():
     """Measures internet upload speed and ping asynchronously."""
     try:
-        test = speedtest.Speedtest(timeout=5)
+        test = speedtest.Speedtest()
         test.get_best_server()  # Select the best server based on latency
         upload_speed = test.upload() / 1_000_000  # Convert to Mbps
         ping = test.results.ping  # Ping in milliseconds
