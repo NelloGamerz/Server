@@ -6,7 +6,7 @@ import threading
 
 app = Flask(__name__)
 CORS(app)
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 # Global variable to store results
 speedtest_results = {"download": None}
@@ -15,7 +15,7 @@ def measure_download_speed():
     """Measures internet download speed asynchronously."""
     try:
         test = speedtest.Speedtest()
-        test.get_best_server()
+        test.get_best_server(timeout=5)
         download_speed = test.download() / 1_000_000  # Convert to Mbps
         speedtest_results["download"] = round(download_speed, 2)
         logging.info(f"Download speed: {speedtest_results['download']} Mbps")
