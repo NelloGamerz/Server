@@ -18,7 +18,7 @@ def measure_upload_ping():
         logging.error(f"Upload/Ping measurement failed: {e}")
         raise
 
-@app.route("/api/speedtest/upload_ping", methods=["GET"])
+@app.route("/", methods=["GET"])
 def upload_ping():
     try:
         upload_speed, ping = measure_upload_ping()
