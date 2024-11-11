@@ -18,3 +18,12 @@ def measure_upload_ping():
     except Exception as e:
         logging.error(f"Upload/Ping measurement failed: {e}")
         raise
+
+@app.route("/", methods=["GET"])
+def upload_ping():
+    try:
+        upload_speed, ping = measure_upload_ping()
+        return jsonify({"upload": upload_speed, "ping": ping})
+    except Exception as e:
+        logging.error(f"Error in /api/speedtest/upload_ping: {e}")
+        return jsonify({"error": "Failed to measure upload speed and ping"}), 500
