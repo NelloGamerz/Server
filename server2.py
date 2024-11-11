@@ -2,39 +2,27 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 import speedtest
 import logging
-import threading
 
 app = Flask(__name__)
-CORS(app)
-logging.basicConfig(level=logging.INFO)
-
-# Global variable to store upload speed and ping results
-upload_ping_result = {"upload": None, "ping": None}
+CORS(app)  # Enable CORS for all routes
 
 def measure_upload_ping():
-    """Measures internet upload speed and ping asynchronously."""
+    """Measures internet upload speed and ping."""
     try:
         test = speedtest.Speedtest()
-        test.get_best_server()
-        upload_speed = test.upload(threads=None) / 1_000_000  # Convert to Mbps
+        test.get_best_server()  # Select the best server based on latency
+        upload_speed = test.upload() / 1_000_000  # Convert to Mbps
         ping = test.results.ping  # Ping in milliseconds
-        upload_ping_result["upload"] = round(upload_speed, 2)
-        upload_ping_result["ping"] = round(ping, 2)
-        logging.info(f"Upload speed: {upload_ping_result['upload']} Mbps, Ping: {upload_ping_result['ping']} ms")
+        return upload_speed, ping
     except Exception as e:
         logging.error(f"Upload/Ping measurement failed: {e}")
-        upload_ping_result.update({"upload": "Error", "ping": "Error"})
+        raise
 
-@app.route("/", methods=["GET"])
-def get_upload_ping():
-    if upload_ping_result["upload"] is None:
-        # Start the upload speed and ping test in a background thread
-        threading.Thread(target=measure_upload_ping).start()
-        return jsonify({'status': 'Upload and ping speed test started, please check back later.'})
-    elif upload_ping_result["upload"] == "Error":
-        return jsonify({'error': 'Upload speed and ping measurement failed'}), 500
-    else:
-        # Prepare the result and reset the global variable for the next request
-        response = {'upload': upload_ping_result["upload"], 'ping': upload_ping_result["ping"]}
-        upload_ping_result.update({"upload": None, "ping": None})
-        return jsonify(response)
+@app.route("/api/speedtest/upload_ping", methods=["GET"])
+def upload_ping():
+    try:
+        upload_speed, ping = measure_upload_ping()
+        return jsonify({"upload": upload_speed, "ping": ping})
+    except Exception as e:
+        logging.error(f"Error in /api/speedtest/upload_ping: {e}")
+        return jsonify({"error": "Failed to measure upload speed and ping"}), 500
