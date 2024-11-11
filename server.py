@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 import speedtest
 import logging
+import os
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -51,4 +52,6 @@ def upload_ping():
         return jsonify({"error": "Failed to measure upload speed and ping"}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Set the port dynamically with a default for local development
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
