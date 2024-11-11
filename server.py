@@ -2,25 +2,24 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 import speedtest
 import logging
-import os
 from logging.handlers import RotatingFileHandler
+import os
 import threading
 
-# Set up Flask app
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-# Load environment-based configurations
-app.config.from_object(os.environ.get('FLASK_CONFIG', 'config.DevelopmentConfig'))
+# Flask environment config
+app.config['FLASK_ENV'] = os.environ.get('FLASK_ENV', 'production')
 
 # Configure logging
-if not app.debug:  # Production logging setup
+if not app.debug:
     log_handler = RotatingFileHandler('app.log', maxBytes=10 * 1024 * 1024, backupCount=3)
     log_handler.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     log_handler.setFormatter(formatter)
     app.logger.addHandler(log_handler)
-else:  # Development logging setup
+else:
     app.logger.setLevel(logging.DEBUG)
 
 def measure_download_speed():
@@ -31,7 +30,7 @@ def measure_download_speed():
         download_speed = test.download() / 1_000_000  # Convert to Mbps
         return download_speed
     except Exception as e:
-        app.logger.error(f"Download speed measurement failed: {e}")
+        logging.error(f"Download speed measurement failed: {e}")
         raise
 
 def measure_upload_ping():
@@ -43,25 +42,47 @@ def measure_upload_ping():
         ping = test.results.ping  # Ping in milliseconds
         return upload_speed, ping
     except Exception as e:
-        app.logger.error(f"Upload/Ping measurement failed: {e}")
+        logging.error(f"Upload/Ping measurement failed: {e}")
         raise
 
 @app.route('/api/speedtest/download', methods=['GET'])
 def download_speed():
-    """Endpoint for downloading speed."""
     try:
         download_speed_mbps = measure_download_speed()
         return jsonify({'download': download_speed_mbps})
     except Exception as e:
-        app.logger.error("Download speed measurement failed:", exc_info=e)
+        logging.error("Download speed measurement failed:", exc_info=e)
         return jsonify({'error': 'Download speed measurement failed'}), 500
 
 @app.route("/api/speedtest/upload_ping", methods=["GET"])
 def upload_ping():
-    """Endpoint for upload speed and ping."""
     try:
         upload_speed, ping = measure_upload_ping()
         return jsonify({"upload": upload_speed, "ping": ping})
     except Exception as e:
-        app.logger.error(f"Error in /api/speedtest/upload_ping: {e}")
+        logging.error(f"Error in /api/speedtest/upload_ping: {e}")
         return jsonify({"error": "Failed to measure upload speed and ping"}), 500
+
+@app.route('/api/speedtest', methods=['GET'])
+def speedtest_endpoint():
+    result = None
+
+    # Run speedtest in background thread
+    def speedtest_thread():
+        nonlocal result
+        try:
+            download_speed_mbps = measure_download_speed()
+            upload_speed, ping = measure_upload_ping()
+            result = {'download': download_speed_mbps, 'upload': upload_speed, 'ping': ping}
+        except Exception as e:
+            logging.error(f"Error in speedtest: {e}")
+            result = {'error': 'Speedtest failed'}
+
+    thread = threading.Thread(target=speedtest_thread)
+    thread.start()
+    thread.join()  # Wait for the thread to finish before returning response
+
+    return jsonify(result)
+
+if __name__ == '__main__':
+    app.run(debug=False, host='0.0.0.0', port=5000)
